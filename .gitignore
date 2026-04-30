@@ -1,0 +1,12 @@
+# Compiled binaries
+*.o
+*.out
+*.exe
+hello
+stats
+# but keep source
+!*.c
+!*.h
+# Editor stuff
+.vscode/
+*.swp
