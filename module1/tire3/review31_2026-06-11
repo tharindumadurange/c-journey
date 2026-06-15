@@ -1,0 +1,65 @@
+# Review — Tier 3, 3.1 Sum of digits  (2026-06-11)
+
+## 1. Verdict
+Works correctly for valid positive integers and for 0, but silently mishandles
+negative input (wrong answer instead of rejection), and has two format-specifier
+mismatches that -Wall will flag.
+
+## 2. Compilation check
+Compiles, but NOT clean under -Wall -Wextra -Wpedantic. Two -Wformat warnings:
+- Line 16 — sscanf "%d" with &n: %d expects int*, &n is unsigned int*.
+- Line 27 — printf "%d" with sum: %d expects int, sum is unsigned int.
+Fix with %u, or (better) switch the variables to signed int.
+
+## 3. Correctness
+Digit-extraction loop is correct: n % 10 peels the lowest digit, n / 10 shifts
+right one decimal place.
+- Normal (123) → 6. Correct.
+- Zero (0) → loop skipped, prints 0. Correct.
+- Negative (-5) → BUG. %d reads -5, stored into unsigned int as 4294967291;
+  sscanf returns 1 so validation passes; prints "Sum of digits = 53". Confident
+  wrong answer for input the prompt called invalid.
+- Largest (4294967295) → digit sum 57, fits. No overflow.
+- Garbage (abc) → sscanf returns 0, prints "Not an integer". Correct.
+
+## 4. Concept gaps
+1. Conversion-specifier <-> type matching (%d vs %u).
+2. Signed->unsigned conversion / wrap-around (NOTE-CAST territory).
+3. Domain validation: "parsed as a number" != "valid for this problem".
+
+## 5. Mini-teaching
+Specifiers + signedness: the bits of -5 don't change when stored in unsigned int;
+only the interpretation changes. %d = interpret as signed, %u = as unsigned. The
+loop reads unsigned, so it sees ~4.29 billion. The mismatch is silent because
+signed/unsigned share a representation; -Wformat is the only safety net.
+
+Validation: a clean parse only proves the text was numeric. Two separate checks:
+  if (sscanf(line, "%d", &n) != 1) { /* not a number */ }
+  if (n < 0)                        { /* number, but out of domain */ }
+
+## 6. Alternative approach
+Use signed int and validate the sign — kills both warnings and the bug at once:
+
+    #include <stdio.h>
+    int main(void) {
+        char line[64];
+        int n, sum = 0;
+        printf("Enter a positive integer: ");
+        if (fgets(line, sizeof line, stdin) == NULL) return 1;
+        if (sscanf(line, "%d", &n) != 1) { printf("Not an integer\n"); return 1; }
+        if (n < 0) { printf("Please enter a non-negative integer\n"); return 1; }
+        while (n > 0) { sum += n % 10; n /= 10; }
+        printf("Sum of digits = %d\n", sum);
+        return 0;
+    }
+
+Types match the specifiers, negatives rejected explicitly, non-zero exit on error.
+Portability note: you included <stdint.h> but used no fixed-width type — drop it.
+Reach for uint32_t (+ PRIu32/SCNu32 from <inttypes.h>) only when a guaranteed
+width genuinely matters on the MCU.
+
+## 7. Style and good-practice notes
+- Line 7: `x` is unclear — `digit` says what it is.
+- Lines 13, 18: `return 0` on error means success to the OS — use `return 1`.
+- Line 3: unused <stdint.h>.
+- Line 6: stray space in `char line [64]` — conventional form is `line[64]`.
