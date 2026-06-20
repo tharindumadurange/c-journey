@@ -37,3 +37,16 @@ reaches the loop gets processed anyway. while tests first and handles the
 zero-iteration case on its own.
 Bad:  do { /* classify n */ n--; } while (n > 0);   // processes n even if n == 0
 Good: while (n > 0) { /* classify n */ n--; }
+
+##6 Return 0 for normal exit; non-zero only for errors
+Rule: 0 = success, non-zero = error. Quitting the normal way (typing 'q') is success -> return 0.
+Why: scripts and tests check the exit code. return 1 on a normal quit tells them the program failed.
+Bad:  if (quit) return 1;
+Good: if (quit) return 0;
+
+##7 Check what comes after the integer; reject trailing junk
+Rule: after reading a number, check the rest of the line is empty. Reject "42abc".
+Why: sscanf("%d") stops at the first non-digit and reports success, so "42abc" passes as 42.
+     In a UART/OSDP parser, accepting a broken field is a real bug.
+Bad:  if (sscanf(line, "%d", &n) == 1) accept(n);             // "42abc" passes
+Good: if (sscanf(line, "%d %c", &n, &extra) == 1) accept(n);  // "42abc" returns 2, rejecte
