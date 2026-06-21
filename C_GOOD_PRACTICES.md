@@ -50,3 +50,20 @@ Why: sscanf("%d") stops at the first non-digit and reports success, so "42abc" p
      In a UART/OSDP parser, accepting a broken field is a real bug.
 Bad:  if (sscanf(line, "%d", &n) == 1) accept(n);             // "42abc" passes
 Good: if (sscanf(line, "%d %c", &n, &extra) == 1) accept(n);  // "42abc" returns 2, rejecte
+
+##8 Reject values outside an inclusive range with (n < lo) || (n > hi)
+    Rule: use OR (||), and < / > (not <= / >=) so the endpoints stay valid.
+    Why: AND (&&) is always false for a range check, so nothing is rejected.
+    Bad:  if ((n <= 0) && (n >= 255)) reject;  // always false; 0 and 255 are valid
+    Good: if ((n < 0)  || (n > 255)) reject;
+
+##9 Use a space, not a tab, for a fixed gap
+    Rule: a space is always 1 character; a tab jumps to the next tab stop (every 8
+    columns), so its width changes with the text before it.
+    Why: tabs line up columns at fixed positions, not fixed gaps. For one steady
+    space between fields, print a space.
+    Bad:  printf("%d 0x%02X\t", n, n);   // gap changes: 255 -> big, 85 -> small
+    Good: printf("%d 0x%02X ",  n, n);   // always one space
+
+Note: the hex/decimal format issues are the same "match spec output" and "%X needs
+unsigned" rules you already saved — not new.
