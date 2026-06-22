@@ -66,4 +66,19 @@ Good: if (sscanf(line, "%d %c", &n, &extra) == 1) accept(n);  // "42abc" returns
     Good: printf("%d 0x%02X ",  n, n);   // always one space
 
 Note: the hex/decimal format issues are the same "match spec output" and "%X needs
-unsigned" rules you already saved — not new.
+unsigned" rules you already saved — not new
+
+##10 Test/read a bit with & (never &=)
+    Rule: to TEST a bit, use reg & (1U << b) -- read only. Never use &= for a test.
+    Why: reg &= (1U << b) keeps only bit b and clears every other bit -- it destroys
+    the register. A test must not change anything.
+    Bad:  reg &= (1U << b);                  // wipes all other bits!
+    Good: printf("%d", (reg >> b) & 1);      // reads, does not change reg
+
+##11 Do not retry input after EOF (NULL means stop)
+    Rule: when fgets returns NULL, stop the loop (return/break). Do not 'continue'.
+    Why: EOF (end of input / Ctrl+D) is permanent. fgets keeps returning NULL, so
+    'continue' becomes an infinite loop.
+    Bad:  if (fgets(...) == NULL) { printf("error"); continue; }   // infinite loop
+    Good: if (fgets(...) == NULL) return 0;                         // stop cleanly
+
