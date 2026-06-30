@@ -82,3 +82,18 @@ unsigned" rules you already saved — not new
     Bad:  if (fgets(...) == NULL) { printf("error"); continue; }   // infinite loop
     Good: if (fgets(...) == NULL) return 0;                         // stop cleanly
 
+##12 C arrays are 0-based: size N means valid indices 0..N-1
+    Rule: an array of size N has slots 0 to N-1. Never touch index N. Store and loop
+    with 0-based indices: for (i = 0; i < n; i++).
+    Why: using 1..n writes/reads array[n], one past the end -> memory corruption and
+    undefined behavior. It may "work" in tests and crash later. Wastes slot 0 too.
+    Bad:  double v[100]; for (x = 1; x <= n; x++) use(v[x]);   // v[100] overflow at n=100
+    Good: double v[100]; for (x = 0; x <  n; x++) use(v[x]);   // stays in 0..99
+
+##13 A ring (circular) buffer must be read from the oldest slot after it wraps
+    Rule: after a circular buffer wraps, the oldest entry is at the current write
+    index, not at slot 0. Read from there, wrapping around, to get time order.
+    Why: printing 0..N-1 after a wrap gives the wrong order. This is the exact
+    pattern of a UART RX ring buffer -- same bug there means frames parsed out of order.
+    Bad:  for (x = 0; x < 32; x++) print(buf[x]);              // wrong order after wrap
+    Good: for (k = 0; k < 32; k++) print(buf[(start + k) % 32]); // start = oldest index
